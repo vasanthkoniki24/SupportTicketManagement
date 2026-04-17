@@ -1,0 +1,295 @@
+# Customer Support Ticket Management System
+
+A full-stack support ticket platform designed to simulate real-world customer support workflows. Customers can raise tickets, track progress, communicate with agents, and receive updates — while admins manage assignments, workflows, and analytics.
+
+---
+
+## Overview
+
+This application demonstrates a backend-focused architecture with clean API design, role-based access control, and structured workflows. The frontend is intentionally minimal but polished to reflect a modern support dashboard.
+
+---
+
+## Roles
+
+Customer
+- Create and view their own tickets
+- Add comments to tickets
+- Receive relevant notifications
+
+Support Agent
+- View assigned tickets
+- Update ticket status
+- Respond to tickets via comments
+
+Admin
+- Assign tickets to agents
+- Manage the full ticket workflow
+- Access the analytics dashboard
+
+---
+
+## Tech Stack
+
+### Backend
+- FastAPI
+- PostgreSQL
+- SQLAlchemy
+- JWT Authentication
+
+### Frontend
+- React (Vite)
+- Axios
+- Tailwind CSS
+- Framer Motion
+- Recharts
+
+---
+
+## Project Structure
+
+SupportTicketManagement/
+|
++-- backend/
+|   +-- app/
+|   |   +-- api/
+|   |   |   +-- v1/
+|   |   |       +-- routes/
+|   |   |           +-- admin.py
+|   |   |           +-- auth.py
+|   |   |           +-- comments.py
+|   |   |           +-- notifications.py
+|   |   |           +-- tickets.py
+|   |   +-- core/
+|   |   |   +-- config.py
+|   |   |   +-- security.py
+|   |   +-- db/
+|   |   |   +-- base.py
+|   |   |   +-- session.py
+|   |   +-- dependencies/
+|   |   |   +-- auth.py
+|   |   +-- models/
+|   |   |   +-- comment.py
+|   |   |   +-- notification.py
+|   |   |   +-- ticket.py
+|   |   |   +-- user.py
+|   |   +-- schemas/
+|   |   |   +-- comment.py
+|   |   |   +-- notification.py
+|   |   |   +-- ticket.py
+|   |   |   +-- user.py
+|   |   +-- services/
+|   |   |   +-- admin_service.py
+|   |   |   +-- auth_service.py
+|   |   |   +-- comment_service.py
+|   |   |   +-- notification_service.py
+|   |   |   +-- ticket_service.py
+|   |   +-- main.py
+|   +-- .env
+|   +-- requirements.txt
+|   +-- alembic.ini
+|
++-- frontend/
+|   +-- src/
+|   |   +-- api/
+|   |   |   +-- axios.js
+|   |   +-- components/
+|   |   |   +-- CommentBubble.jsx
+|   |   |   +-- Navbar.jsx
+|   |   |   +-- ProtectedRoute.jsx
+|   |   |   +-- Sidebar.jsx
+|   |   |   +-- StatCard.jsx
+|   |   |   +-- TicketCard.jsx
+|   |   +-- layouts/
+|   |   |   +-- DashboardLayout.jsx
+|   |   +-- pages/
+|   |   |   +-- AdminDashboard.jsx
+|   |   |   +-- CreateTicket.jsx
+|   |   |   +-- CustomerDashboard.jsx
+|   |   |   +-- Login.jsx
+|   |   |   +-- Notifications.jsx
+|   |   |   +-- NotFound.jsx
+|   |   |   +-- Register.jsx
+|   |   |   +-- TicketDetails.jsx
+|   |   +-- utils/
+|   |   |   +-- auth.js
+|   |   +-- App.jsx
+|   |   +-- index.css
+|   |   +-- main.jsx
+|   +-- package.json
+|   +-- vite.config.js
+|
++-- README.md
+---
+
+## Backend Setup
+
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+### Create Database
+
+CREATE DATABASE support_ticket_db;
+### Configure .env
+
+DATABASE_URL=postgresql://postgres:password@localhost:5432/support_ticket_db
+SECRET_KEY=your_secret_key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+### Run the Server
+
+uvicorn app.main:app --reload --port 9000
+- API Base URL: http://127.0.0.1:9000
+- Swagger Docs: http://127.0.0.1:9000/docs
+
+---
+
+## Frontend Setup
+
+cd frontend
+npm install
+npm run dev
+- Frontend URL: http://127.0.0.1:5173
+
+---
+
+## Authentication
+
+JWT-based authentication is used throughout the system. All protected endpoints require the token to be sent in the request header:
+
+Authorization: Bearer <token>
+---
+
+## Ticket Workflow
+
+Open  -->  In Progress  -->  Resolved  -->  Closed
+Rules:
+- Customers can only view their own tickets
+- Only Admins and Support Agents can update ticket status
+- Invalid status transitions are restricted
+- Resolution time is tracked automatically
+
+---
+
+## API Endpoints
+
+### Auth
+| Method | Endpoint       | Description           |
+|--------|----------------|-----------------------|
+| POST   | /auth/register | Register a new user   |
+| POST   | /auth/login    | Login and get token   |
+| GET    | /auth/me       | Get current user info |
+
+### Tickets
+
+| Method | Endpoint                  | Description         |
+|--------|---------------------------|---------------------|
+| POST   | /tickets                  | Create a ticket     |
+| GET    | /tickets                  | List all tickets    |
+| GET    | /tickets/{id}             | Get ticket details  |
+| PATCH  | /tickets/{id}/assign      | Assign an agent     |
+| PATCH  | /tickets/{id}/status      | Update status       |
+
+### Comments
+
+| Method | Endpoint                     | Description       |
+|--------|------------------------------|-------------------|
+| POST   | /tickets/{id}/comments       | Add a comment     |
+| GET    | /tickets/{id}/comments       | Get all comments  |
+
+### Notifications
+
+| Method | Endpoint        | Description           |
+|--------|-----------------|-----------------------|
+| GET    | /notifications  | Get user notifications|
+
+### Admin
+
+| Method | Endpoint          | Description           |
+|--------|-------------------|-----------------------|
+| GET    | /admin/analytics  | Get dashboard metrics |
+
+---
+
+## Database Schema
+
+### Users
+
+| Field    | Type    |
+|----------|---------|
+| id       | Integer |
+| name     | String  |
+| email    | String  |
+| password | String  |
+| role     | String  |
+
+### Tickets
+
+| Field             | Type     |
+|-------------------|----------|
+| id                | Integer  |
+| title             | String   |
+| description       | Text     |
+| priority          | String   |
+| status            | String   |
+| customer_id       | Integer  |
+| assigned_agent_id | Integer  |
+| created_at        | DateTime |
+| resolved_at       | DateTime |
+
+### Comments
+
+| Field      | Type     |
+|------------|----------|
+| id         | Integer  |
+| message    | Text     |
+| ticket_id  | Integer  |
+| user_id    | Integer  |
+| created_at | DateTime |
+
+### Notifications
+
+| Field      | Type     |
+|------------|----------|
+| id         | Integer  |
+| message    | String   |
+| user_id    | Integer  |
+| created_at | DateTime |
+
+---
+
+## Notifications
+
+Notifications are triggered on the following events:
+- Ticket assignment
+- Ticket status updates
+- New comment added
+
+Each user receives only notifications relevant to them.
+
+---
+
+## Admin Dashboard
+
+The admin analytics endpoint provides the following metrics:
+- Total ticket count
+- Status distribution across all tickets
+- Priority distribution across all tickets
+- Average resolution time
+
+---
+
+## Frontend Highlights
+
+- Clean dashboard layout with role-based navigation
+- Ticket cards displaying status and priority at a glance
+- Chat-style comment interface for support conversations
+- Auto-refreshing notification panel
+- Fully responsive UI with mobile support
+
+---
+
+## Conclusion
+
+This project demonstrates a complete support ticket workflow system with a robust backend, role-based access control, structured status transitions, and a clean frontend interface — suitable for real-world applications and portfolio demonstration.
