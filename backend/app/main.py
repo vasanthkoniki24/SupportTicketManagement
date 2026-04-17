@@ -1,10 +1,13 @@
+import os
 from fastapi import FastAPI 
 from app.db.session import Base, engine 
+from fastapi.staticfiles import StaticFiles
 from app.api.v1.routes.auth import router as auth_router 
 from app.api.v1.routes.tickets import router as ticket_router
 from app.api.v1.routes.comments import router as comment_router
 from app.api.v1.routes.admin import router as admin_router
 from app.api.v1.routes.notifications import router as notification_router
+from app.api.v1.routes.attachments import router as attachment_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Customer Support Ticket Management System", version="1.0.0")
@@ -27,6 +30,10 @@ app.include_router(ticket_router)
 app.include_router(comment_router)
 app.include_router(admin_router)
 app.include_router(notification_router)
+app.include_router(attachment_router)
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def root():

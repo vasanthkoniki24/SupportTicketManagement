@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 from app.dependencies.auth import get_db, get_current_user
 from app.schemas.ticket import TicketCreate, TicketResponse, TicketAssign, TicketStatusUpdate
@@ -16,12 +16,17 @@ def create_new_ticket(
     return create_ticket(db, data, current_user)
 
 
-@router.get("", response_model=list[TicketResponse])
+@router.get("")
 def list_tickets(
+    page: int = Query(1, ge=1),
+    limit: int = Query(6, ge=1, le=50),
+    search: str | None = None,
+    status: str | None = None,
+    priority: str | None = None,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
-    return get_tickets(db, current_user)
+    return get_tickets(db, current_user, page, limit, search, status, priority)
 
 
 @router.get("/{ticket_id}", response_model=TicketResponse)

@@ -223,15 +223,21 @@ export default function TicketDetails() {
   const [agentId, setAgentId] = useState("");
   const [sending, setSending] = useState(false);
 
+  const [attachments, setAttachments] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+
   useEffect(() => {
     fetchTicket();
     fetchComments();
+    fetchAttachments();
   }, [id]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       fetchComments(true);
       fetchTicket(true);
+      fetchAttachments(true);
     }, 5000);
 
     return () => clearInterval(interval);
@@ -260,8 +266,20 @@ export default function TicketDetails() {
     }
   };
 
+  const fetchAttachments = async (silent = false) => {
+    try {
+      const res = await API.get(`/tickets/${id}/attachments`);
+      setAttachments(res.data);
+    } catch (error) {
+      if (!silent) {
+        toast.error(error?.response?.data?.detail || "Failed to load attachments");
+      }
+    }
+  };
+
   const handleComment = async (e) => {
     e.preventDefault();
+
     if (!commentText.trim()) return;
 
     setSending(true);
@@ -299,6 +317,30 @@ export default function TicketDetails() {
       fetchTicket(true);
     } catch (error) {
       toast.error(error?.response?.data?.detail || "Failed to assign ticket");
+    }
+  };
+
+  const handleAttachmentUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Choose a file first");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      await API.post(`/tickets/${id}/attachments`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      toast.success("File uploaded");
+      setSelectedFile(null);
+      fetchAttachments(true);
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Failed to upload file");
     }
   };
 
@@ -439,6 +481,41 @@ export default function TicketDetails() {
               </button>
             </div>
           )}
+          
+          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+            <h2 className="text-lg font-semibold mb-4">Attachments</h2>
+
+            <input
+                type="file"
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+                className="w-full mb-4 text-sm text-slate-300"
+            />
+
+            <button
+                onClick={handleAttachmentUpload}
+                className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-600 transition font-semibold mb-4"
+            >
+                Upload Attachment
+            </button>
+
+            <div className="space-y-3">
+                {attachments.length === 0 ? (
+                <p className="text-slate-400 text-sm">No attachments yet.</p>
+                ) : (
+                attachments.map((file) => (
+                    <a
+                    key={file.id}
+                    href={`http://127.0.0.1:9000/${file.file_path.replace(/\\/g, "/")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block px-4 py-3 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/15 text-sm"
+                    >
+                    {file.file_name}
+                    </a>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

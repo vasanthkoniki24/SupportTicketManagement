@@ -5,6 +5,7 @@ from app.models.ticket import Ticket
 from app.models.user import User
 
 from app.services.notification_service import create_notification
+from app.services.email_service import send_email
 
 def _get_ticket_or_404(db: Session, ticket_id: int) -> Ticket:
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
@@ -60,7 +61,16 @@ def create_comment(db: Session, ticket_id: int, message: str, current_user: User
             f"New comment on ticket #{ticket.id}"
         )
 
-        
+
+    customer = db.query(User).filter(User.id == ticket.customer_id).first()
+    if customer and customer.id != current_user.id:
+        send_email(
+            customer.email,
+            f"New Comment on Ticket #{ticket.id}",
+            f"A new comment was added to your ticket #{ticket.id}."
+        )
+
+
     return comment
 
 

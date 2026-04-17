@@ -6,6 +6,8 @@ from app.schemas.ticket import TicketCreate, ALLOWED_PRIORITIES, ALLOWED_STATUSE
 from datetime import datetime, timezone
 
 from app.services.notification_service import create_notification
+from app.services.email_service import send_email
+from sqlalchemy import or_
 
 
 
@@ -57,18 +59,44 @@ def create_ticket(db: Session, data: TicketCreate, current_user: User) -> Ticket
     return _add_ticket_meta(ticket)
 
 
-def get_tickets(db: Session, current_user: User):
-    if current_user.role in ["admin", "support_agent"]:
-        tickets = db.query(Ticket).order_by(Ticket.id.desc()).all()
-        return _add_ticket_meta_list(tickets)
+def get_tickets(db: Session, current_user: User, page: int, limit: int, search: str | None, status: str | None, priority: str | None):
+    query = db.query(Ticket)
+
+    if current_user.role == "customer":
+        query = query.filter(Ticket.customer_id == current_user.id)
+
+    if search:
+        query = query.filter(
+            or_(
+                Ticket.title.ilike(f"%{search}%"),
+                Ticket.description.ilike(f"%{search}%")
+            )
+        )
+
+    if status:
+        query = query.filter(Ticket.status == status)
+
+    if priority:
+        query = query.filter(Ticket.priority == priority)
+
+    total = query.count()
 
     tickets = (
-        db.query(Ticket)
-        .filter(Ticket.customer_id == current_user.id)
-        .order_by(Ticket.id.desc())
+        query.order_by(Ticket.id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
         .all()
     )
-    return _add_ticket_meta_list(tickets)
+
+    tickets = _add_ticket_meta_list(tickets)
+
+    return {
+        "items": tickets,
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "pages": (total + limit - 1) // limit
+    }
 
 
 def get_ticket_by_id(db: Session, ticket_id: int, current_user: User) -> Ticket:
@@ -138,6 +166,20 @@ def assign_ticket(db: Session, ticket_id: int, agent_id: int, current_user: User
             ticket.customer_id,
             f"Your ticket #{ticket.id} has been assigned to a support agent"
             )
+        
+    send_email(
+        agent.email,
+        f"Ticket #{ticket.id} Assigned",
+        f"You have been assigned to ticket #{ticket.id}: {ticket.title}"
+    )
+
+    customer = db.query(User).filter(User.id == ticket.customer_id).first()
+    if customer:
+        send_email(
+            customer.email,
+            f"Ticket #{ticket.id} Assigned",
+            f"Your ticket #{ticket.id} has been assigned to a support agent."
+        )
 
 
     return _add_ticket_meta(ticket)
@@ -206,6 +248,14 @@ def update_ticket_status(db: Session, ticket_id: int, new_status: str, current_u
             ticket.assigned_agent_id,
             f"Ticket #{ticket.id} status changed to '{new_status}'"
             )
+        
+    customer = db.query(User).filter(User.id == ticket.customer_id).first()
+    if customer:
+        send_email(
+            customer.email,
+            f"Ticket #{ticket.id} Status Update",
+            f"Your ticket status has been updated to: {new_status}"
+        )
 
 
     return _add_ticket_meta(ticket)
